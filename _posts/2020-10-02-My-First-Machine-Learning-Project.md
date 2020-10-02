@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "My First ML Project: Baseball, Linear Regression, and Shrinkage"
+title: "My First Machine Learning Project"
 author: "Jesse Moeller"
 categories: journal
 tags: []
@@ -19,7 +19,7 @@ $$
 L(m,b) = \underbrace{\sum (\hat{y}-y)^2}_{\text{penalty for being far away from data}} + \underbrace{\lambda ||m||^2}_{\text{penalty for too many coefficients}}
 $$
 
-Like in the previous situation, since this function is nice, you cand do some calculus to find a minimum. However, if we leave the square off of the new term in our loss function, then there is no closed form expression for the minimum. We can still find solutions, however, and in theory both of these models should reduce the number of coefficients that we see in $m$. The authors of ESL discuss why you might want to leave the square off, and the reasoning is geometric in nature but I will leave that out here. The three models I have mentioned so far are called linear regression, ridge regression, and lasso regression, respectively. There's another linear model which I won't explain in detail called elastic net and you can kind of think of it as somewhere between ridge and lasso. 
+Like in the previous situation, since this function is nice, you can do some calculus to find a minimum. However, if we leave the square off of the new term in our loss function, then there is no closed form expression for the minimum. We can still find solutions, however, and in theory both of these models should reduce the number of coefficients that we see in $m$. The authors of ESL discuss why you might want to leave the square off, and the reasoning is geometric in nature but I will leave that out here. The three models I have mentioned so far are called linear regression, ridge regression, and lasso regression, respectively. There's another linear model which I won't explain in detail called elastic net and you can kind of think of it as somewhere between ridge and lasso. 
 
 With this grounding, I wanted to see how shrinkage could be applied. I downloaded a Major League Baseball dataset and I set out to predict a player's weight from the other features in the dataset using a linear model. The features at my disposal were the player's team, their position, and their height, weight, and age. With each of these models I wanted to train the model on some of the data set (training data) and see how well it behaved on the remaining portion of data that it hasn't seen (the test data). This is standard practice during model selection, and the scikit-learn packages make this part very easy for us. Here's what that code looks like:
 
