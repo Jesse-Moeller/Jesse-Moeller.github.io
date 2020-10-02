@@ -1,0 +1,85 @@
+I"l<<p>I love the internet. There is no shortage of free learning material on the internet. I learned calculus on the internet. Any meaningful progress I have made towards learning a computer skill has happened on the internet. Naturally, the internet would be there to help me get into machine learning. There are several dozen starting points available to get into machine learning from ground zero. After reviewing several books, and at the suggestion of one of the mentors from my summer internship, Mike Grosskopf, I decided to crack open Elements of Statistical Learning (ESL), by Friedman, Hastie, and Tibshirani. The book is freely availabe <a href="https://web.stanford.edu/~hastie/ElemStatLearn/">here</a>. I really appreciate the way this book is layed out: there’s a fundamental block of chapters which are, more or less, required by the others, but the rest of the book is a buffet of content and can be consumed in any order. Mike encouraged me to read through Chapter 3, one of those fundamental chapters, to try and learn about shrinkage methods.</p>
+
+<p>Chapter 3 of ESL is about linear regression. When we want to predict a value $y$, like someone’s weight, based on certain features $x$, like how old that person is, then a simpe way to do it is to just use a linear equation: $\hat{y}=mx+b$. So our model is entirely determined by these numbers $m$ and $b$. I guess, in this context, $b$ might mean “the average weight of a newborn”. But how <em>good</em> is this model? How do we judge how well our $m$ and $b$ perform? A straightforward way to judge this is just to add up the errors of our predictions. To avoid the positive error and negative error cancelling eachother out, we will add up the squared error. Relative to the data, $m$ and $b$ are variables and so this process defines a function, $L(m,b)$, which we call the loss function. Based on the description above we have</p>
+
+\[L(m,b) = \sum (\hat{y}-y)^2\]
+
+<p>If you know some calculus, then you can just minimize this equation to find the best $m$ and $b$ for the job. If we are predicting a value using more factors than just one, not much changes. The $x$ and $m$ and $b$ become vectors and that’s it. Still, we can ask: how <em>good</em> is this model? Sure, objectively it is the minimum of this loss function, but there are other concerns. What if we have several predictors and we don’t believe that each of these will contribute to the prediction? Then it is possible that we can get better prediction accuracy by shrinking some of the coefficients in $m$, or setting them to zero entirely. One way to penalize $m$ for having too many non-zero coefficients is to modify our loss function. Perhaps something like</p>
+
+\[L(m,b) = \underbrace{\sum (\hat{y}-y)^2}_{\text{penalty for being far away from data}} + \underbrace{\lambda ||m||^2}_{\text{penalty for too many coefficients}}\]
+
+<p>Like in the previous situation, since this function is nice, you cand do some calculus to find a minimum. However, if we leave the square off of the new term in our loss function, then there is no closed form expression for the minimum. We can still find solutions, however, and in theory both of these models should reduce the number of coefficients that we see in $m$. The authors of ESL discuss why you might want to leave the square off, and the reasoning is geometric in nature but I will leave that out here. The three models I have mentioned so far are called linear regression, ridge regression, and lasso regression, respectively. There’s another linear model which I won’t explain in detail called elastic net and you can kind of think of it as somewhere between ridge and lasso.</p>
+
+<p>With this grounding, I wanted to see how shrinkage could be applied. I downloaded a Major League Baseball dataset and I set out to predict a player’s weight from the other features in the dataset using a linear model. The features at my disposal were the player’s team, their position, and their height, weight, and age. With each of these models I wanted to train the model on some of the data set (training data) and see how well it behaved on the remaining portion of data that it hasn’t seen (the test data). This is standard practice during model selection, and the scikit-learn packages make this part very easy for us. Here’s what that code looks like:</p>
+
+<div class="language-python highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="n">np</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="k">as</span> <span class="n">pd</span>
+<span class="kn">from</span> <span class="nn">pandas</span> <span class="kn">import</span> <span class="n">read_csv</span>
+<span class="kn">from</span> <span class="nn">sklearn.model_selection</span> <span class="kn">import</span> <span class="n">train_test_split</span>
+<span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LinearRegression</span>
+<span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">ElasticNetCV</span>
+<span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">LassoCV</span>
+<span class="kn">from</span> <span class="nn">sklearn.linear_model</span> <span class="kn">import</span> <span class="n">RidgeCV</span>
+<span class="kn">import</span> <span class="nn">matplotlib</span> <span class="k">as</span> <span class="n">plt</span>
+
+<span class="c1"># formatting the output images
+</span><span class="n">plt</span><span class="p">.</span><span class="n">rcParams</span><span class="p">[</span><span class="s">"figure.figsize"</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+
+<span class="c1"># import MLB player weight data
+</span><span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s">'Name'</span><span class="p">,</span><span class="s">'Team'</span><span class="p">,</span><span class="s">'Position'</span><span class="p">,</span><span class="s">'Height'</span><span class="p">,</span><span class="s">'Weight'</span><span class="p">,</span><span class="s">'Age'</span><span class="p">]</span>
+<span class="n">MLB</span> <span class="o">=</span> <span class="n">read_csv</span><span class="p">(</span><span class="s">r"C:\Users\moell\Desktop\Machine Learning\Data\MLBweight.csv"</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">)</span>
+<span class="n">MLB</span><span class="o">=</span><span class="n">MLB</span><span class="p">.</span><span class="n">drop</span><span class="p">(</span><span class="s">'Name'</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+<span class="c1"># one-hot encoding
+</span><span class="n">MLB</span><span class="o">=</span><span class="n">pd</span><span class="p">.</span><span class="n">get_dummies</span><span class="p">(</span><span class="n">MLB</span><span class="p">)</span>
+
+<span class="c1"># formatting X and y
+</span><span class="n">y</span><span class="o">=</span><span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">(</span><span class="n">MLB</span><span class="p">[</span><span class="s">'Weight'</span><span class="p">])</span>
+<span class="n">MLB</span><span class="o">=</span><span class="n">MLB</span><span class="p">.</span><span class="n">drop</span><span class="p">(</span><span class="s">'Weight'</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">feature_list</span><span class="o">=</span><span class="nb">list</span><span class="p">(</span><span class="n">MLB</span><span class="p">.</span><span class="n">columns</span><span class="p">)</span>
+<span class="n">X</span><span class="o">=</span><span class="n">np</span><span class="p">.</span><span class="n">array</span><span class="p">(</span><span class="n">MLB</span><span class="p">)</span>
+<span class="n">y</span><span class="o">=</span><span class="n">np</span><span class="p">.</span><span class="n">nan_to_num</span><span class="p">(</span><span class="n">y</span><span class="p">)</span>
+
+<span class="c1"># splitting data
+</span><span class="n">X_train</span><span class="p">,</span> <span class="n">X_test</span><span class="p">,</span> <span class="n">y_train</span><span class="p">,</span> <span class="n">y_test</span> <span class="o">=</span> <span class="n">train_test_split</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">test_size</span><span class="o">=</span><span class="mf">0.25</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="c1"># make a list of labelled models (name,model)
+</span><span class="n">models</span><span class="o">=</span><span class="p">[(</span><span class="s">'Linear Regression'</span><span class="p">,</span> <span class="n">LinearRegression</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s">'Ridge'</span><span class="p">,</span> <span class="n">RidgeCV</span><span class="p">()),</span>
+        <span class="p">(</span><span class="s">'Lasso'</span><span class="p">,</span> <span class="n">LassoCV</span><span class="p">(</span><span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">)),</span>
+        <span class="p">(</span><span class="s">'Elastic Net'</span><span class="p">,</span> <span class="n">ElasticNetCV</span><span class="p">(</span><span class="n">cv</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">0</span><span class="p">))]</span>
+
+<span class="c1"># compare Results
+</span><span class="k">for</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span><span class="n">model</span><span class="p">)</span> <span class="ow">in</span> <span class="n">models</span><span class="p">:</span>
+    <span class="n">model</span><span class="p">.</span><span class="n">fit</span><span class="p">(</span><span class="n">X_train</span><span class="p">,</span><span class="n">y_train</span><span class="p">)</span>
+    <span class="n">predictions</span> <span class="o">=</span> <span class="n">model</span><span class="p">.</span><span class="n">predict</span><span class="p">(</span><span class="n">X_test</span><span class="p">)</span>
+    <span class="n">errors</span> <span class="o">=</span> <span class="nb">abs</span><span class="p">(</span><span class="n">predictions</span> <span class="o">-</span> <span class="n">y_test</span><span class="p">)</span>
+    <span class="k">print</span><span class="p">(</span><span class="s">'Mean Absolute Error for'</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="s">' :'</span><span class="p">,</span> <span class="nb">round</span><span class="p">(</span><span class="n">np</span><span class="p">.</span><span class="n">mean</span><span class="p">(</span><span class="n">errors</span><span class="p">),</span> <span class="mi">2</span><span class="p">))</span>
+
+    <span class="c1"># plotting the coefficients of the model
+</span>    <span class="n">coefs</span> <span class="o">=</span> <span class="n">pd</span><span class="p">.</span><span class="n">DataFrame</span><span class="p">({</span><span class="s">'Feature'</span><span class="p">:</span> <span class="n">feature_list</span><span class="p">,</span>
+                      <span class="s">'Importance'</span><span class="p">:</span> <span class="n">model</span><span class="p">.</span><span class="n">coef_</span><span class="p">})</span>
+    <span class="n">coefs</span> <span class="o">=</span> <span class="n">coefs</span><span class="p">.</span><span class="n">set_index</span><span class="p">(</span><span class="s">'Feature'</span><span class="p">).</span><span class="n">sort_values</span><span class="p">(</span><span class="s">'Importance'</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="bp">False</span><span class="p">)</span>
+    <span class="n">coefs_plot</span> <span class="o">=</span> <span class="n">coefs</span><span class="p">.</span><span class="n">plot</span><span class="p">(</span><span class="n">kind</span><span class="o">=</span><span class="s">'bar'</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span> <span class="n">name</span><span class="o">+</span><span class="s">' feature importance'</span><span class="p">)</span>
+</code></pre></div></div>
+
+<p>And here’s the output:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Mean Absolute Error for Linear Regression  : 12.64
+Mean Absolute Error for Ridge  : 12.55
+Mean Absolute Error for Lasso  : 12.53
+Mean Absolute Error for Elastic Net  : 12.58
+</code></pre></div></div>
+
+<p>Also, here are the “feature importance” plots</p>
+
+<p><img src="/assets/img/mlb_weight_lr.png" alt="image" />
+<img src="/assets/img/mlb_weight_ridge.png" alt="image" />
+<img src="/assets/img/mlb_weight_lasso.png" alt="image" />
+<img src="/assets/img/mlb_weight_enet.png" alt="image" /></p>
+
+<p>So, here’s what sticks out to me. None of these models are significantly better at predicting the weight, at least as far as I can tell. However, looking at the plots of the coefficients, we see a huge difference between the basic linear regression and the other models. It is very clear that, in the other models, shrinkage is happening. We see a continuous shrinkage to zero with ridge, as expected. We see a sharp chop-off to zero with lasso, as expected (if you read ESL chapter 3). Lastly, we see something between these with elastic net, as expected (since it is kind of a mix of the previous two). So, hey! That’s neat. Looking at the features themselves, we see that the shrinkage models don’t exactly agree on everything but we get a sense that being a designated hitter or a catcher means you’re heavier, and being a second baseman or a shortstop means you’re lighter. These results also make sense, but I did not expect or predict them myself. Baseball isn’t on the tips of my fingers in that kind of way.</p>
+
+<p>The linear regression seemed to evenly distribute the bias among the linearly dependent one-hot encoded categories, whereas the shrinkage models seemed to converge on feature selection that actually makes sense. Again, they all performed similarly, but the shrinkage models seem to have better explanatory power.</p>
+
+<p>I ran these models earlier this year when I was preparing for my summer internship with Los Alamos National Labs. In a future post, I will share my experiences from the internship and talk about the work I did there.</p>
+:ET
