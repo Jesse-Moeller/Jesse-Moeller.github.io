@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "My First Machine Learning Project"
+title: "My First ML Project: Baseball, Linear Regression, and Shrinkage"
 author: "Jesse Moeller"
 categories: journal
 tags: []
