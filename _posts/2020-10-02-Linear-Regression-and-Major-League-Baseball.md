@@ -1,6 +1,6 @@
 ---
 layout: post
-title: "My First Machine Learning Project"
+title: "Linear Regression and Major League Baseball"
 author: "Jesse Moeller"
 categories: journal
 tags: []
