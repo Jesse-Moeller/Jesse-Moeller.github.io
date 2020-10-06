@@ -3,7 +3,7 @@ layout: post
 title: "Linear Regression and Major League Baseball"
 author: "Jesse Moeller"
 categories: journal
-tags: []
+tags: ["Machine Learning"]
 image: pablo_sandoval.jpg
 ---
 
